@@ -1,8 +1,12 @@
-# Exécuter uniquement sur la branche main
-workflow:
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+name: Python CI/CD
 
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+  
 stages:
   - build
   - job
@@ -63,3 +67,4 @@ deploy:
     paths:
       - deploy/
     expire_in: 2 weeks
+
