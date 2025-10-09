@@ -1,0 +1,62 @@
+stages:
+  - build
+  - job
+  - deploy
+
+# Stage 1 : BUILD
+build:
+  stage: build
+  tags:
+    - runnerMM
+  script:
+    - echo "=== Étape BUILD ==="
+    - echo "Création du dossier build..."
+    - mkdir -p build
+    - echo "Copie des fichiers sources..."
+    - cp hashgestion.py build/
+    - cp aesgestion.py build/
+    - cp rsagestion.py build/
+    - echo "Build terminé avec succès."
+  artifacts:
+    name: "build_artifacts_$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/
+    expire_in: 1 week
+
+# Stage 2 : JOB (Tests ou vérifications)
+job:
+  stage: job
+  tags:
+    - runnerMM
+  script:
+    - echo "=== Étape JOB ==="
+    - echo "Vérification syntaxique des scripts..."
+    - python3 -m py_compile build/*.py
+    - echo "Tests terminés avec succès."
+  dependencies:
+    - build
+  artifacts:
+    name: "job_artifacts_$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/
+    expire_in: 1 week
+
+# Stage 3 : DEPLOY
+deploy:
+  stage: deploy
+  tags:
+    - runnerMM
+  script:
+    - echo "=== Étape DEPLOY ==="
+    - echo "Déploiement des scripts..."
+    - mkdir -p deploy
+    - cp build/*.py deploy/
+    - echo "Déploiement terminé avec succès."
+  dependencies:
+    - job
+  artifacts:
+    name: "deploy_artifacts_$CI_COMMIT_SHORT_SHA"
+    paths:
+      - deploy/
+    expire_in: 2 weeks
+
