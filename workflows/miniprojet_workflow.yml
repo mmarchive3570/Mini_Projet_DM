@@ -1,9 +1,14 @@
+# Exécuter uniquement sur la branche main
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
 stages:
   - build
   - job
   - deploy
 
-# Stage 1 : BUILD
+# === STAGE 1 : BUILD ===
 build:
   stage: build
   tags:
@@ -12,7 +17,7 @@ build:
     - echo "=== Étape BUILD ==="
     - echo "Création du dossier build..."
     - mkdir -p build
-    - echo "Copie des fichiers sources..."
+    - echo "Copie des fichiers Python..."
     - cp hashgestion.py build/
     - cp aesgestion.py build/
     - cp rsagestion.py build/
@@ -23,16 +28,16 @@ build:
       - build/
     expire_in: 1 week
 
-# Stage 2 : JOB (Tests ou vérifications)
+# === STAGE 2 : JOB ===
 job:
   stage: job
   tags:
     - runnerMM
   script:
     - echo "=== Étape JOB ==="
-    - echo "Vérification syntaxique des scripts..."
+    - echo "Vérification syntaxique des fichiers..."
     - python3 -m py_compile build/*.py
-    - echo "Tests terminés avec succès."
+    - echo "Les scripts Python sont valides."
   dependencies:
     - build
   artifacts:
@@ -41,17 +46,16 @@ job:
       - build/
     expire_in: 1 week
 
-# Stage 3 : DEPLOY
+# === STAGE 3 : DEPLOY ===
 deploy:
   stage: deploy
   tags:
     - runnerMM
   script:
     - echo "=== Étape DEPLOY ==="
-    - echo "Déploiement des scripts..."
     - mkdir -p deploy
     - cp build/*.py deploy/
-    - echo "Déploiement terminé avec succès."
+    - echo "Déploiement terminé avec succès sur la branche main."
   dependencies:
     - job
   artifacts:
@@ -59,4 +63,3 @@ deploy:
     paths:
       - deploy/
     expire_in: 2 weeks
-
