@@ -9,7 +9,7 @@ class CryptoGUI:
     def __init__(self, root):
         self.root = root
         root.title("Mini Projet - Cryptographie")
-        root.geometry("520x320")
+        root.geometry("540x400")
         root.configure(bg="#969696")
 
         self.cipher_type = tk.StringVar(value="AES")
@@ -29,9 +29,9 @@ class CryptoGUI:
         self.btn_load_aes.grid(row=1, column=1, sticky='w', padx=5, pady=5)
 
         self.btn_generate_aes = tk.Button(root, text=" Générer", command=self.generate_aes_key,
-                                          width=12, bg="#666666", fg="white")
+                                          width=12, bg="#646464", fg="white")
         self.btn_save_aes = tk.Button(root, text=" Enregistrer", command=self.save_aes_key,
-                                      width=12, bg="#6d6d6d", fg="white")
+                                      width=12, bg="#8d8d8d", fg="white")
 
         # === RSA ===
         tk.Label(root, text="Clés RSA :", bg="#969696", font=("Segoe UI", 10, "bold"))\
@@ -40,13 +40,13 @@ class CryptoGUI:
         self.btn_load_rsa.grid(row=2, column=1, sticky='w', padx=5, pady=5)
 
         self.btn_generate_rsa = tk.Button(root, text=" Générer", command=self.generate_rsa_keys,
-                                          width=12, bg="#6d6d6d", fg="white")
+                                          width=12, bg="#777777", fg="white")
         self.btn_save_rsa = tk.Button(root, text=" Enregistrer", command=self.save_rsa_keys,
-                                      width=12, bg="#696969", fg="white")
+                                      width=12, bg="#777777", fg="white")
 
-        # === Boutons d’action (alignés) ===
+        # === Boutons d’action ===
         btn_frame = tk.Frame(root, bg="#969696")
-        btn_frame.grid(row=3, column=0, columnspan=2, pady=20)
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=15)
 
         tk.Button(btn_frame, text="Déchiffrer", command=self.decrypt_data,
                   width=12, bg="#8d8d8d", fg="white").grid(row=0, column=0, padx=10)
@@ -55,9 +55,36 @@ class CryptoGUI:
         tk.Button(btn_frame, text="SHA-256", command=self.hash_sha256,
                   width=12, bg="#8d8d8d", fg="white").grid(row=0, column=2, padx=10)
 
+        # === Zone de résultat ===
+        tk.Label(root, text="Résultat :", bg="#969696", font=("Segoe UI", 10, "bold"))\
+            .grid(row=4, column=0, sticky='ne', padx=5, pady=5)
+
+        result_frame = tk.Frame(root, bg="#969696")
+        result_frame.grid(row=4, column=1, sticky='w', padx=5, pady=5)
+
+        self.result_text = tk.Text(result_frame, height=5, width=45, wrap="word", bg="#e0e0e0")
+        self.result_text.pack(pady=5)
+        tk.Button(result_frame, text=" Copier le résultat", command=self.copy_result,
+                  bg="#707070", fg="white").pack(pady=2)
+
+    # === Fonctions utilitaires ===
+    def display_result(self, text):
+        self.result_text.config(state="normal")
+        self.result_text.delete(1.0, tk.END)
+        self.result_text.insert(tk.END, text)
+        self.result_text.config(state="disabled")
+
+    def copy_result(self):
+        result = self.result_text.get(1.0, tk.END).strip()
+        if result:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(result)
+            messagebox.showinfo("Copié", "Résultat copié dans le presse-papiers ✅")
+        else:
+            messagebox.showwarning("Attention", "Aucun résultat à copier !")
+
     # === AES ===
     def toggle_aes_buttons(self):
-        """Affiche / cache les boutons de gestion AES"""
         if not self.aes_buttons_visible:
             self.btn_generate_aes.grid(row=1, column=2, padx=5)
             self.btn_save_aes.grid(row=1, column=3, padx=5)
@@ -83,11 +110,9 @@ class CryptoGUI:
             messagebox.showerror("Erreur", f"Impossible de générer la clé AES : {e}")
 
     def save_aes_key(self):
-        filepath = filedialog.asksaveasfilename(
-            title="Enregistrer la clé AES",
-            defaultextension=".key",
-            filetypes=[("Fichier clé", "*.key")]
-        )
+        filepath = filedialog.asksaveasfilename(title="Enregistrer la clé AES",
+                                                defaultextension=".key",
+                                                filetypes=[("Fichier clé", "*.key")])
         if filepath:
             try:
                 res = requests.post(f"{API_URL}/aes/save_key", data={"filename": filepath})
@@ -97,7 +122,6 @@ class CryptoGUI:
 
     # === RSA ===
     def toggle_rsa_buttons(self):
-        """Affiche / cache les boutons RSA + permet de charger les clés"""
         if not self.rsa_buttons_visible:
             self.btn_generate_rsa.grid(row=2, column=2, padx=5)
             self.btn_save_rsa.grid(row=2, column=3, padx=5)
@@ -124,20 +148,16 @@ class CryptoGUI:
             messagebox.showerror("Erreur", f"Impossible de générer les clés RSA : {e}")
 
     def save_rsa_keys(self):
-        """Sauvegarder les clés RSA (publique et privée)"""
-        pub_path = filedialog.asksaveasfilename(
-            title="Enregistrer la clé publique RSA",
-            defaultextension=".pem",
-            filetypes=[("Fichier PEM", "*.pem")]
-        )
-        priv_path = filedialog.asksaveasfilename(
-            title="Enregistrer la clé privée RSA",
-            defaultextension=".pem",
-            filetypes=[("Fichier PEM", "*.pem")]
-        )
+        pub_path = filedialog.asksaveasfilename(title="Enregistrer la clé publique RSA",
+                                                defaultextension=".pem",
+                                                filetypes=[("Fichier PEM", "*.pem")])
+        priv_path = filedialog.asksaveasfilename(title="Enregistrer la clé privée RSA",
+                                                 defaultextension=".pem",
+                                                 filetypes=[("Fichier PEM", "*.pem")])
         if pub_path and priv_path:
             try:
-                res = requests.post(f"{API_URL}/rsa/save_keys", data={"pub_file": pub_path, "priv_file": priv_path})
+                res = requests.post(f"{API_URL}/rsa/save_keys",
+                                    data={"pub_file": pub_path, "priv_file": priv_path})
                 messagebox.showinfo("Sauvegarde RSA", res.json().get("status", "Clés RSA enregistrées."))
             except Exception as e:
                 messagebox.showerror("Erreur", f"Impossible d’enregistrer les clés RSA : {e}")
@@ -153,7 +173,8 @@ class CryptoGUI:
                 res = requests.post(f"{API_URL}/aes/encrypt_string", data={"data": data})
             else:
                 res = requests.post(f"{API_URL}/rsa/encrypt", data={"data": data})
-            messagebox.showinfo("Résultat", res.json().get("encrypted", "Erreur"))
+            result = res.json().get("encrypted", "Erreur")
+            self.display_result(result)
         except Exception as e:
             messagebox.showerror("Erreur", f"Chiffrement échoué : {e}")
 
@@ -167,7 +188,8 @@ class CryptoGUI:
                 res = requests.post(f"{API_URL}/aes/decrypt_string", data={"data": data})
             else:
                 res = requests.post(f"{API_URL}/rsa/decrypt", data={"data": data})
-            messagebox.showinfo("Résultat", res.json().get("decrypted", "Erreur"))
+            result = res.json().get("decrypted", "Erreur")
+            self.display_result(result)
         except Exception as e:
             messagebox.showerror("Erreur", f"Déchiffrement échoué : {e}")
 
@@ -177,7 +199,8 @@ class CryptoGUI:
         if data:
             try:
                 res = requests.post(f"{API_URL}/hash/sha256", data={"data": data})
-                messagebox.showinfo("SHA-256", res.json()["sha256"])
+                result = res.json().get("sha256", "Erreur")
+                self.display_result(result)
             except Exception as e:
                 messagebox.showerror("Erreur", f"Impossible de calculer SHA-256 : {e}")
 
@@ -186,3 +209,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = CryptoGUI(root)
     root.mainloop()
+
