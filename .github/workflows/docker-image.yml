@@ -1,49 +1,75 @@
-name: Build and Deploy
+name: Python Build & Deploy
 
 on:
   push:
-    branches:
-      - main     # Déclenche le workflow sur push vers la branche main
-  pull_request:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: 🧾 Checkout du code
         uses: actions/checkout@v4
 
-      - name: Setup JDK 1.8
-        uses: actions/setup-java@v3
-        with:
-          java-version: 1.8
+      - name: 🏗️ Création du dossier build
+        run: mkdir -p build
 
-      - name: Build with Maven
-        run: mvn clean install
+      - name: 📂 Copier les fichiers Python dans build/
+        run: |
+          cp hashgestion.py build/
+          cp aesgestion.py build/
+          cp rsagestion.py build/
+          echo "✅ Fichiers copiés dans build/"
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: 🧪 Vérification de la présence des fichiers
+        run: |
+          ls -la build/
+          test -f build/hashgestion.py
+          test -f build/aesgestion.py
+          test -f build/rsagestion.py
+          echo "✅ Tous les fichiers sont présents dans build/"
+
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: build-artifact   # Adapter au nom d'artefact
+          name: build_artifacts
+          path: build/
+          retention-days: 7
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifact
+      - name: 📥 Télécharger les artefacts du build
         uses: actions/download-artifact@v4
         with:
-          name: build-artifact
+          name: build_artifacts
+          path: build/
 
-      - name: Deploy to AWS Elastic Beanstalk
-        uses: einaregilsson/beanstalk-deploy@v22
+      - name: 🧾 Vérifier les fichiers téléchargés
+        run: |
+          echo "Liste des fichiers dans build/"
+          ls -la build/
+
+      - name: 🗂️ Créer le dossier deploy
+        run: mkdir -p deploy
+
+      - name: 🚀 Copier les fichiers vers deploy/
+        run: |
+          cp build/*.py deploy/
+          echo "✅ Fichiers copiés dans deploy/"
+
+      - name: 📦 Upload deploy artifacts
+        uses: actions/upload-artifact@v4
         with:
-          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: your-app-name
-          environment_name: your-env-name
-          version_label: ${{ github.run_id }}
-          region: ${{ secrets.AWS_REGION }}
-          deployment_package: target/demo-1.0.jar
+          name: deploy_artifacts
+          path: deploy/
+          retention-days: 14
+
+      # (Optionnel) Étape de déploiement réel
+      # - name: 🚀 Déploiement sur le serveur / cloud / etc.
+      #   run: |
+      #     echo "Déploiement en cours..."
+      #     # exemple : scp -r deploy/* user@serveur:/var/www/app
+      #     echo "✅ Déploiement terminé !"
