@@ -1,4 +1,4 @@
-name: Python Build & Deploy
+name: Python Build, Test & Deploy
 
 on:
   push:
@@ -22,14 +22,6 @@ jobs:
           cp rsagestion.py build/
           echo "✅ Fichiers copiés dans build/"
 
-      - name: 🧪 Vérification de la présence des fichiers
-        run: |
-          ls -la build/
-          test -f build/hashgestion.py
-          test -f build/aesgestion.py
-          test -f build/rsagestion.py
-          echo "✅ Tous les fichiers sont présents dans build/"
-
       - name: 📦 Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -37,7 +29,7 @@ jobs:
           path: build/
           retention-days: 7
 
-  deploy:
+  test:
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -47,15 +39,58 @@ jobs:
           name: build_artifacts
           path: build/
 
-      - name: 🧾 Vérifier les fichiers téléchargés
+      - name: 🧠 Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 🧪 Lister les fichiers à tester
+        run: ls -la build/
+
+      - name: 🧩 Vérifier la présence des fichiers
         run: |
-          echo "Liste des fichiers dans build/"
-          ls -la build/
+          set -e
+          test -f build/hashgestion.py || (echo "❌ hashgestion.py manquant" && exit 1)
+          test -f build/aesgestion.py || (echo "❌ aesgestion.py manquant" && exit 1)
+          test -f build/rsagestion.py || (echo "❌ rsagestion.py manquant" && exit 1)
+          echo "✅ Tous les fichiers nécessaires sont présents"
+
+      - name: 🐍 Vérification syntaxique avec py_compile
+        run: |
+          for file in build/*.py; do
+            echo "Vérification syntaxique de $file"
+            python -m py_compile "$file" || (echo "❌ Erreur dans $file" && exit 1)
+          done
+          echo "✅ Aucun problème de syntaxe trouvé"
+
+      # (Optionnel) Si tu veux des tests unitaires :
+      # Crée un fichier test_hashgestion.py, etc. et décommente ci-dessous :
+      # - name: 🔍 Exécution des tests unitaires
+      #   run: |
+      #     pip install pytest
+      #     pytest --maxfail=1 --disable-warnings -q
+
+      - name: 📦 Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test_artifacts
+          path: build/
+          retention-days: 7
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Télécharger les artefacts testés
+        uses: actions/download-artifact@v4
+        with:
+          name: test_artifacts
+          path: build/
 
       - name: 🗂️ Créer le dossier deploy
         run: mkdir -p deploy
 
-      - name: 🚀 Copier les fichiers vers deploy/
+      - name: 🚀 Copier les fichiers Python dans deploy/
         run: |
           cp build/*.py deploy/
           echo "✅ Fichiers copiés dans deploy/"
@@ -67,9 +102,9 @@ jobs:
           path: deploy/
           retention-days: 14
 
-      # (Optionnel) Étape de déploiement réel
-      # - name: 🚀 Déploiement sur le serveur / cloud / etc.
+      # (Optionnel) Étape de déploiement réel :
+      # - name: 🚀 Déploiement sur serveur distant
       #   run: |
       #     echo "Déploiement en cours..."
-      #     # exemple : scp -r deploy/* user@serveur:/var/www/app
+      #     scp -r deploy/* user@serveur:/var/www/app
       #     echo "✅ Déploiement terminé !"
