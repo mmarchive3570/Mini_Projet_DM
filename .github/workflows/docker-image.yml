@@ -34,11 +34,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifacts
+      - name: Télécharger les artefacts du build
         uses: actions/download-artifact@v4
         with:
           name: build_artifacts
           path: build/
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Lister les fichiers téléchargés
         run: ls -l build/
@@ -50,7 +55,7 @@ jobs:
           test -f build/rsagestion.py
 
       - name: Vérification syntaxique des fichiers
-        run: python3 -m py_compile build/*.py
+        run: python -m py_compile build/*.py
 
       - name: Upload verify artifacts
         uses: actions/upload-artifact@v4
@@ -63,7 +68,7 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     steps:
-      - name: Download verify artifacts
+      - name: Télécharger les artefacts vérifiés
         uses: actions/download-artifact@v4
         with:
           name: verify_artifacts
