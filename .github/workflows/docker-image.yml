@@ -1,11 +1,12 @@
-name: Python CI/CD
+name: Build and Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main     # Déclenche le workflow sur push vers la branche main
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
   build:
@@ -14,87 +15,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Création du dossier build
-        run: mkdir -p build
-
-      - name: Copier les fichiers Python dans build/
-        run: |
-          cp hashgestion.py build/
-          cp aesgestion.py build/
-          cp rsagestion.py build/
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Setup JDK 1.8
+        uses: actions/setup-java@v3
         with:
-          name: build_artifacts
-          path: build/
-          retention-days: 7
+          java-version: 1.8
 
-  verify:
+      - name: Build with Maven
+        run: mvn clean install
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact   # Adapter au nom d'artefact
+
+  deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Télécharger les artefacts du build
+      - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: build_artifacts
-          path: build/
+          name: build-artifact
 
-      - name: Vérifier que Python est installé
-        uses: actions/setup-python@v5
+      - name: Deploy to AWS Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v22
         with:
-          python-version: '3.12'
-
-      - name: Afficher la version de Python
-        run: python --version
-
-      - name: Lister les fichiers téléchargés
-        run: ls -la build/
-
-      - name: Vérifier la présence des fichiers
-        run: |
-          set -e
-          echo "Vérification des fichiers..."
-          test -f build/hashgestion.py || (echo "❌ hashgestion.py manquant !" && exit 1)
-          test -f build/aesgestion.py || (echo "❌ aesgestion.py manquant !" && exit 1)
-          test -f build/rsagestion.py || (echo "❌ rsagestion.py manquant !" && exit 1)
-          echo "✅ Tous les fichiers sont présents."
-
-      - name: Vérification syntaxique des fichiers
-        run: |
-          echo "Vérification syntaxique avec py_compile..."
-          for file in build/*.py; do
-            echo "→ Vérifie $file"
-            python -m py_compile "$file" || (echo "❌ Erreur dans $file" && exit 1)
-          done
-          echo "✅ Aucune erreur de syntaxe détectée."
-
-      - name: Upload verify artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: verify_artifacts
-          path: build/
-          retention-days: 7
-
-  deploy:
-    needs: verify
-    runs-on: ubuntu-latest
-    steps:
-      - name: Télécharger les artefacts vérifiés
-        uses: actions/download-artifact@v4
-        with:
-          name: verify_artifacts
-          path: build/
-
-      - name: Création du dossier deploy
-        run: mkdir -p deploy
-
-      - name: Copier les fichiers Python dans deploy/
-        run: cp build/*.py deploy/
-
-      - name: Upload deploy artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: deploy_artifacts
-          path: deploy/
-          retention-days: 14
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: your-app-name
+          environment_name: your-env-name
+          version_label: ${{ github.run_id }}
+          region: ${{ secrets.AWS_REGION }}
+          deployment_package: target/demo-1.0.jar
