@@ -40,22 +40,34 @@ jobs:
           name: build_artifacts
           path: build/
 
-      - name: Installer Python
+      - name: Vérifier que Python est installé
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
+      - name: Afficher la version de Python
+        run: python --version
+
       - name: Lister les fichiers téléchargés
-        run: ls -l build/
+        run: ls -la build/
 
       - name: Vérifier la présence des fichiers
         run: |
-          test -f build/hashgestion.py
-          test -f build/aesgestion.py
-          test -f build/rsagestion.py
+          set -e
+          echo "Vérification des fichiers..."
+          test -f build/hashgestion.py || (echo "❌ hashgestion.py manquant !" && exit 1)
+          test -f build/aesgestion.py || (echo "❌ aesgestion.py manquant !" && exit 1)
+          test -f build/rsagestion.py || (echo "❌ rsagestion.py manquant !" && exit 1)
+          echo "✅ Tous les fichiers sont présents."
 
       - name: Vérification syntaxique des fichiers
-        run: python -m py_compile build/*.py
+        run: |
+          echo "Vérification syntaxique avec py_compile..."
+          for file in build/*.py; do
+            echo "→ Vérifie $file"
+            python -m py_compile "$file" || (echo "❌ Erreur dans $file" && exit 1)
+          done
+          echo "✅ Aucune erreur de syntaxe détectée."
 
       - name: Upload verify artifacts
         uses: actions/upload-artifact@v4
