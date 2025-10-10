@@ -30,7 +30,7 @@ jobs:
           path: build/
           retention-days: 7
 
-  job:
+  verify:
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -40,24 +40,33 @@ jobs:
           name: build_artifacts
           path: build/
 
+      - name: Lister les fichiers téléchargés
+        run: ls -l build/
+
+      - name: Vérifier la présence des fichiers
+        run: |
+          test -f build/hashgestion.py
+          test -f build/aesgestion.py
+          test -f build/rsagestion.py
+
       - name: Vérification syntaxique des fichiers
         run: python3 -m py_compile build/*.py
 
-      - name: Upload job artifacts
+      - name: Upload verify artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: job_artifacts
+          name: verify_artifacts
           path: build/
           retention-days: 7
 
   deploy:
-    needs: job
+    needs: verify
     runs-on: ubuntu-latest
     steps:
-      - name: Download job artifacts
+      - name: Download verify artifacts
         uses: actions/download-artifact@v4
         with:
-          name: job_artifacts
+          name: verify_artifacts
           path: build/
 
       - name: Création du dossier deploy
