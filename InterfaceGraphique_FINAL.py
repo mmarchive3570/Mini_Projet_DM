@@ -210,3 +210,4 @@ if __name__ == "__main__":
     app = CryptoGUI(root)
     root.mainloop()
 
+
