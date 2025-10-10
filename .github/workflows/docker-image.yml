@@ -1,18 +1,69 @@
-name: Docker Image CI
+name: Python CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+  workflow_dispatch:
+  
+stages:
+  - build
+  - job
+  - deploy
 
-jobs:
+# === STAGE 1 : BUILD ===
+build:
+  stage: build
+  tags:
+    - runnerMM
+  script:
+    - echo "=== Étape BUILD ==="
+    - echo "Création du dossier build..."
+    - mkdir -p build
+    - echo "Copie des fichiers Python..."
+    - cp hashgestion.py build/
+    - cp aesgestion.py build/
+    - cp rsagestion.py build/
+    - echo "Build terminé avec succès."
+  artifacts:
+    name: "build_artifacts_$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/
+    expire_in: 1 week
 
-  build:
+# === STAGE 2 : JOB ===
+job:
+  stage: job
+  tags:
+    - runnerMM
+  script:
+    - echo "=== Étape JOB ==="
+    - echo "Vérification syntaxique des fichiers..."
+    - python3 -m py_compile build/*.py
+    - echo "Les scripts Python sont valides."
+  dependencies:
+    - build
+  artifacts:
+    name: "job_artifacts_$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/
+    expire_in: 1 week
 
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+# === STAGE 3 : DEPLOY ===
+deploy:
+  stage: deploy
+  tags:
+    - runnerMM
+  script:
+    - echo "=== Étape DEPLOY ==="
+    - mkdir -p deploy
+    - cp build/*.py deploy/
+    - echo "Déploiement terminé avec succès sur la branche main."
+  dependencies:
+    - job
+  artifacts:
+    name: "deploy_artifacts_$CI_COMMIT_SHORT_SHA"
+    paths:
+      - deploy/
+    expire_in: 2 weeks
