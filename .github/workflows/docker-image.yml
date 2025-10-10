@@ -6,64 +6,69 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-  
-stages:
-  - build
-  - job
-  - deploy
 
-# === STAGE 1 : BUILD ===
-build:
-  stage: build
-  tags:
-    - runnerMM
-  script:
-    - echo "=== Étape BUILD ==="
-    - echo "Création du dossier build..."
-    - mkdir -p build
-    - echo "Copie des fichiers Python..."
-    - cp hashgestion.py build/
-    - cp aesgestion.py build/
-    - cp rsagestion.py build/
-    - echo "Build terminé avec succès."
-  artifacts:
-    name: "build_artifacts_$CI_COMMIT_SHORT_SHA"
-    paths:
-      - build/
-    expire_in: 1 week
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-# === STAGE 2 : JOB ===
-job:
-  stage: job
-  tags:
-    - runnerMM
-  script:
-    - echo "=== Étape JOB ==="
-    - echo "Vérification syntaxique des fichiers..."
-    - python3 -m py_compile build/*.py
-    - echo "Les scripts Python sont valides."
-  dependencies:
-    - build
-  artifacts:
-    name: "job_artifacts_$CI_COMMIT_SHORT_SHA"
-    paths:
-      - build/
-    expire_in: 1 week
+      - name: Création du dossier build
+        run: mkdir -p build
 
-# === STAGE 3 : DEPLOY ===
-deploy:
-  stage: deploy
-  tags:
-    - runnerMM
-  script:
-    - echo "=== Étape DEPLOY ==="
-    - mkdir -p deploy
-    - cp build/*.py deploy/
-    - echo "Déploiement terminé avec succès sur la branche main."
-  dependencies:
-    - job
-  artifacts:
-    name: "deploy_artifacts_$CI_COMMIT_SHORT_SHA"
-    paths:
-      - deploy/
-    expire_in: 2 weeks
+      - name: Copier les fichiers Python dans build/
+        run: |
+          cp hashgestion.py build/
+          cp aesgestion.py build/
+          cp rsagestion.py build/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_artifacts
+          path: build/
+          retention-days: 7
+
+  job:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build_artifacts
+          path: build/
+
+      - name: Vérification syntaxique des fichiers
+        run: python3 -m py_compile build/*.py
+
+      - name: Upload job artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: job_artifacts
+          path: build/
+          retention-days: 7
+
+  deploy:
+    needs: job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download job artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: job_artifacts
+          path: build/
+
+      - name: Création du dossier deploy
+        run: mkdir -p deploy
+
+      - name: Copier les fichiers Python dans deploy/
+        run: cp build/*.py deploy/
+
+      - name: Upload deploy artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy_artifacts
+          path: deploy/
+          retention-days: 14
