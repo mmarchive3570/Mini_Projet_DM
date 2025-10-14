@@ -1,75 +1,19 @@
-name: Python Build & Deploy
-
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ cryptoHttp ]
+  pull_request:
+    branches: [ cryptoHttp ]
+  workflow_dispatch:   # lancement manuel
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+ 
+  lint:
+    runs-on: [self-hosted]
     steps:
-      - name: 🧾 Checkout du code
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: 🏗️ Création du dossier build
-        run: mkdir -p build
-
-      - name: 📂 Copier les fichiers Python dans build/
+      - name: Docker
         run: |
-          cp hashgestion.py build/
-          cp aesgestion.py build/
-          cp rsagestion.py build/
-          echo "✅ Fichiers copiés dans build/"
-
-      - name: 🧪 Vérification de la présence des fichiers
-        run: |
-          ls -la build/
-          test -f build/hashgestion.py
-          test -f build/aesgestion.py
-          test -f build/rsagestion.py
-          echo "✅ Tous les fichiers sont présents dans build/"
-
-      - name: 📦 Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build_artifacts
-          path: build/
-          retention-days: 7
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📥 Télécharger les artefacts du build
-        uses: actions/download-artifact@v4
-        with:
-          name: build_artifacts
-          path: build/
-
-      - name: 🧾 Vérifier les fichiers téléchargés
-        run: |
-          echo "Liste des fichiers dans build/"
-          ls -la build/
-
-      - name: 🗂️ Créer le dossier deploy
-        run: mkdir -p deploy
-
-      - name: 🚀 Copier les fichiers vers deploy/
-        run: |
-          cp build/*.py deploy/
-          echo "✅ Fichiers copiés dans deploy/"
-
-      - name: 📦 Upload deploy artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: deploy_artifacts
-          path: deploy/
-          retention-days: 14
-
-      # (Optionnel) Étape de déploiement réel
-      # - name: 🚀 Déploiement sur le serveur / cloud / etc.
-      #   run: |
-      #     echo "Déploiement en cours..."
-      #     # exemple : scp -r deploy/* user@serveur:/var/www/app
-      #     echo "✅ Déploiement terminé !"
+          docker build -t cryptoimage .
+          docker compose up -d
