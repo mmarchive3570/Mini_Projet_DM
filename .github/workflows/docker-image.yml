@@ -1,8 +1,8 @@
 on:
   push:
-    branches: [ cryptoHttp ]
+    branches: [ main ]
   pull_request:
-    branches: [ cryptoHttp ]
+    branches: [ main ]
   workflow_dispatch:   # lancement manuel
 
 jobs:
